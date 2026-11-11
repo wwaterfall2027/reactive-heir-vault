@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heir Vault Demo</title>
+<style>
+  :root { --bg: #0b1020; --fg: #e8ecf6; --muted: #9aa6c4; --accent: #7cf0c5; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #0b1020; --fg: #e8ecf6; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px system-ui, sans-serif; padding: 16px; }
+  canvas { width: 100%; max-width: 1280px; aspect-ratio: 16 / 9; display: block; border-radius: 8px; }
+  #status { margin-top: 8px; color: var(--muted); }
+  button { margin-top: 8px; padding: 6px 12px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div id="status">ready</div>
+<button id="preview">Preview</button>
+<button id="render">Render MP4</button>
+<script type="module">
+const W = 1280, H = 720, FPS = 30;
+const C = { bg: '#0b1020', panel: '#141b33', panel2: '#1b2442', fg: '#e8ecf6', muted: '#9aa6c4', accent: '#7cf0c5', warn: '#ffb86b', bad: '#ff6b81', blue: '#7aa2ff', purple: '#c49bff' };
+const cv = document.getElementById('c'), x = cv.getContext('2d');
+const status = (s) => { document.getElementById('status').textContent = s; };
+
+const SCENES = [
+  { d: 8, f: sceneTitle },
+  { d: 14, f: sceneProblem },
+  { d: 24, f: sceneHow },
+  { d: 34, f: sceneProof },
+  { d: 18, f: sceneFailures },
+  { d: 12, f: sceneEnd },
+];
+const TOTAL = SCENES.reduce((a, s) => a + s.d, 0);
+
+const ease = (t) => t < 0 ? 0 : t > 1 ? 1 : 1 - Math.pow(1 - t, 3);
+const fade = (t, at, dur = 0.6) => ease((t - at) / dur);
+
+function text(s, px, py, size, color = C.fg, weight = 400, align = 'left', alpha = 1) {
+  x.save(); x.globalAlpha = alpha; x.fillStyle = color; x.textAlign = align; x.textBaseline = 'alphabetic';
+  x.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`; x.fillText(s, px, py); x.restore();
+}
+function mono(s, px, py, size, color = C.muted, alpha = 1, align = 'left') {
+  x.save(); x.globalAlpha = alpha; x.fillStyle = color; x.textAlign = align;
+  x.font = `500 ${size}px Consolas, "Cascadia Mono", monospace`; x.fillText(s, px, py); x.restore();
+}
+function rrect(px, py, w, h, r, fill, alpha = 1, stroke) {
+  x.save(); x.globalAlpha = alpha; x.beginPath(); x.roundRect(px, py, w, h, r);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = 2; x.stroke(); }
+  x.restore();
+}
+function arrow(x1, y1, x2, y2, color, alpha = 1, prog = 1, label, dashed = false) {
+  const xe = x1 + (x2 - x1) * prog, ye = y1 + (y2 - y1) * prog;
+  x.save(); x.globalAlpha = alpha; x.strokeStyle = color; x.fillStyle = color; x.lineWidth = 3;
+  if (dashed) x.setLineDash([10, 8]);
+  x.beginPath(); x.moveTo(x1, y1); x.lineTo(xe, ye); x.stroke(); x.setLineDash([]);
+  if (prog > 0.98) { const a = Math.atan2(y2 - y1, x2 - x1); x.beginPath(); x.moveTo(x2, y2);
+    x.lineTo(x2 - 14 * Math.cos(a - 0.4), y2 - 14 * Math.sin(a - 0.4)); x.lineTo(x2 - 14 * Math.cos(a + 0.4), y2 - 14 * Math.sin(a + 0.4)); x.fill(); }
+  x.restore();
+  if (label && prog > 0.98) text(label, (x1 + x2) / 2, (y1 + y2) / 2 - 12, 18, color, 600, 'center', alpha);
+}
+function header(t, kicker, title) {
+  text(kicker, 80, 92, 18, C.accent, 700, 'left', fade(t, 0));
+  text(title, 80, 140, 40, C.fg, 700, 'left', fade(t, 0.15));
+}
+function footer(t) {
+  mono('Heir Vault · Reactive Omni Buildathon · Set It and Forget It', 80, 690, 15, C.muted, 0.7);
+}
+
+function sceneTitle(t) {
+  const a = fade(t, 0.2, 1);
+  text('HEIR VAULT', W / 2, 300, 84, C.fg, 800, 'center', a);
+  text('a dead man’s switch that runs itself', W / 2, 360, 32, C.accent, 500, 'center', fade(t, 0.9, 1));
+  text('Reactive Omni Buildathon  ·  track: Set It and Forget It', W / 2, 430, 22, C.muted, 400, 'center', fade(t, 1.8, 1));
+}
+
+function sceneProblem(t) {
+  header(t, 'THE PROBLEM', 'When a crypto holder dies, the funds usually die too.');
+  const items = [
+    ['No bank, no court, no "forgot password".', 1.2],
+    ['Existing dead man’s switches need a server or a keeper bot', 3.5],
+    ['that someone has to pay for and keep alive for years.', 4.2],
+    ['If the bot goes down, the heir gets nothing.', 6.5],
+  ];
+  items.forEach(([s, at], i) => text(s, 80, 250 + i * 60, 28, i === 3 ? C.warn : C.fg, i === 3 ? 600 : 400, 'left', fade(t, at)));
+  text('Heir Vault removes the bot: Reactive Network watches the owner, on-chain.', 80, 560, 26, C.accent, 600, 'left', fade(t, 9));
+  footer(t);
+}
+
+function sceneHow(t) {
+  header(t, 'HOW IT WORKS', 'Two contracts. No server, no keeper, no off-chain code.');
+  const a1 = fade(t, 0.8), a2 = fade(t, 1.6);
+  rrect(80, 220, 420, 330, 16, C.panel, a1, C.blue);
+  text('Ethereum Sepolia', 110, 262, 20, C.blue, 700, 'left', a1);
+  text('HeirVault', 110, 305, 34, C.fg, 700, 'left', a1);
+  ['holds ETH + ERC-20', 'owner calls ping()  →  Heartbeat', 'release() only via Reactive', 're-checks the deadline itself'].forEach((s, i) => text('• ' + s, 110, 355 + i * 40, 21, C.fg, 400, 'left', fade(t, 2.4 + i * 0.4)));
+  rrect(780, 220, 420, 330, 16, C.panel, a2, C.purple);
+  text('Reactive Network (Lasna)', 810, 262, 20, C.purple, 700, 'left', a2);
+  text('HeirVaultReactive', 810, 305, 34, C.fg, 700, 'left', a2);
+  ['subscribes to Heartbeat + Released', 'Cron100 tick ≈ every 2 min', 'silent > period → request callback', 'retries; unsubscribes when done'].forEach((s, i) => text('• ' + s, 810, 355 + i * 40, 21, C.fg, 400, 'left', fade(t, 4.2 + i * 0.4)));
+  arrow(500, 300, 780, 300, C.accent, fade(t, 7), ease((t - 7) / 1.2), '1  Heartbeat events');
+  arrow(780, 470, 500, 470, C.warn, fade(t, 10), ease((t - 10) / 1.2), '2  callback: release()');
+  text('3  the heir receives everything', 640, 600, 26, C.accent, 700, 'center', fade(t, 13));
+  text('The owner sets it up once, and pings now and then. That’s it.', 640, 640, 22, C.muted, 400, 'center', fade(t, 16));
+  footer(t);
+}
+
+function sceneProof(t) {
+  header(t, 'LIVE PROOF  ·  TESTNET', 'The full loop ran end to end on Sepolia + Lasna.');
+  const steps = [
+    ['Sepolia', 'Deploy vault: 0.01 ETH, heir set, period = 10 min', '0x05cdf1e4…276956', C.blue],
+    ['Lasna', 'Deploy reactive: Heartbeat + Released + Cron100', '0x5a7b9b82…2a56', C.purple],
+    ['Sepolia → Lasna', 'Owner ping() → Reactive records lastHeartbeat', '0x6876db23…2bde', C.accent],
+    ['', '… 10 minutes of silence …', '', C.muted],
+    ['Lasna', 'CRON tick: ReleaseRequested (attempt 1)', '0x89fff29f…9adb', C.purple],
+    ['Sepolia', 'Callback release(): heir receives 0.0095 ETH', '0xe31bc044…ffe9', C.accent],
+    ['Lasna', 'Sees Released → unsubscribes → Finished', '0xb9638d10…47eb', C.purple],
+  ];
+  steps.forEach(([chain, what, tx, color], i) => {
+    const at = 1.5 + i * 3.4, a = fade(t, at), y = 205 + i * 62;
+    if (!chain) { text(what, 640, y + 34, 22, C.warn, 600, 'center', a); return; }
+    rrect(80, y, 1120, 50, 10, C.panel, a);
+    text(String(i < 3 ? i + 1 : i), 110, y + 33, 22, color, 800, 'left', a);
+    text(chain, 150, y + 33, 18, color, 700, 'left', a);
+    text(what, 340, y + 33, 21, C.fg, 500, 'left', a);
+    mono(tx, 1180, y + 33, 17, C.muted, a, 'right');
+  });
+  text('Verified with cast: vault.released() = true  ·  heir balance 0.0095 ETH  ·  reactive.done() = true', 640, 660, 19, C.accent, 600, 'center', fade(t, 27));
+}
+
+function sceneFailures(t) {
+  header(t, 'BUILT BY BREAKING IT', 'Two failed testnet runs made the design better.');
+  const a1 = fade(t, 1), a2 = fade(t, 5.5);
+  rrect(80, 200, 545, 380, 16, C.panel, a1, C.bad);
+  text('Run 1: never ticked', 110, 245, 26, C.bad, 700, 'left', a1);
+  ['Heartbeats arrived, CRON never did.', 'Cron events come from the legacy', 'system contract 0x…fffFfF, not 0x8888…', '', 'Fix: subscribe to the right source.'].forEach((s, i) => text(s, 110, 300 + i * 42, 21, i === 4 ? C.accent : C.fg, i === 4 ? 600 : 400, 'left', fade(t, 2 + i * 0.4)));
+  rrect(655, 200, 545, 380, 16, C.panel, a2, C.warn);
+  text('Run 2: CallbackFailure', 685, 245, 26, C.warn, 700, 'left', a2);
+  ['cast run replay: release() ran out of gas', 'paying a brand-new heir account.', 'Worse: a failed callback was final.', '', 'Fix: 1M gas, retry every 5 min,', 'unsubscribe when Released.'].forEach((s, i) => text(s, 685, 300 + i * 42, 21, i >= 4 ? C.accent : C.fg, i >= 4 ? 600 : 400, 'left', fade(t, 6.5 + i * 0.4)));
+  text('An heir can’t retry for you. The contract has to.', 640, 630, 24, C.fg, 600, 'center', fade(t, 12));
+  footer(t);
+}
+
+function sceneEnd(t) {
+  text('23 / 23 Foundry tests', W / 2, 230, 52, C.accent, 800, 'center', fade(t, 0.3));
+  text('incl. fuzz tests + reactive logic against a mocked system contract', W / 2, 280, 22, C.muted, 400, 'center', fade(t, 1));
+  text('Vault (Sepolia)', 640, 370, 20, C.blue, 700, 'center', fade(t, 2.5));
+  mono('0x950B3901EFE0362ED9eA3488815e774cF062bdA9', 640, 402, 22, C.fg, fade(t, 2.5), 'center');
+  text('Reactive (Lasna)', 640, 450, 20, C.purple, 700, 'center', fade(t, 3.2));
+  mono('0x4067F70d1137FB84534462fca3EBC5eA0519957b', 640, 482, 22, C.fg, fade(t, 3.2), 'center');
+  text('HEIR VAULT', W / 2, 590, 40, C.fg, 800, 'center', fade(t, 5));
+  text('set it up once  ·  forget it  ·  your heir is covered', W / 2, 632, 22, C.accent, 500, 'center', fade(t, 5.6));
+}
+
+function drawFrame(sec) {
+  x.fillStyle = C.bg; x.fillRect(0, 0, W, H);
+  let acc = 0;
+  for (const s of SCENES) {
+    if (sec < acc + s.d) {
+      const local = sec - acc;
+      const fo = Math.min(1, (s.d - local) / 0.4);
+      x.save(); x.globalAlpha = Math.max(0, fo); s.f(local); x.restore();
+      break;
+    }
+    acc += s.d;
+  }
+  x.fillStyle = C.accent; x.fillRect(0, H - 4, W * (sec / TOTAL), 4);
+}
+
+let raf;
+document.getElementById('preview').onclick = () => {
+  cancelAnimationFrame(raf); const start = performance.now();
+  const loop = () => { const s = (performance.now() - start) / 1000; drawFrame(s % TOTAL); raf = requestAnimationFrame(loop); };
+  loop();
+};
+
+async function render() {
+  cancelAnimationFrame(raf);
+  const { Muxer, ArrayBufferTarget } = await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm');
+  const codec = 'avc1.640028';
+  const cfg = { codec, width: W, height: H, bitrate: 4_000_000, framerate: FPS, avc: { format: 'avc' } };
+  const sup = await VideoEncoder.isConfigSupported(cfg);
+  if (!sup.supported) throw new Error('H.264 encoding not supported here');
+  const target = new ArrayBufferTarget();
+  const muxer = new Muxer({ target, video: { codec: 'avc', width: W, height: H }, fastStart: 'in-memory' });
+  const enc = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: (e) => { throw e; } });
+  enc.configure(cfg);
+  const frames = Math.round(TOTAL * FPS);
+  for (let i = 0; i < frames; i++) {
+    drawFrame(i / FPS);
+    const vf = new VideoFrame(cv, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    enc.encode(vf, { keyFrame: i % (FPS * 2) === 0 });
+    vf.close();
+    while (enc.encodeQueueSize > 20) await new Promise((r) => setTimeout(r, 5));
+    if (i % 30 === 0) { status(`encoding ${i}/${frames}`); window.__progress = i / frames; }
+  }
+  await enc.flush();
+  muxer.finalize();
+  const buf = target.buffer;
+  status(`encoded ${(buf.byteLength / 1e6).toFixed(2)} MB, uploading`);
+  const r = await fetch('/upload', { method: 'POST', body: buf, headers: { 'content-type': 'video/mp4' } });
+  const msg = await r.text();
+  status('done: ' + msg);
+  return { bytes: buf.byteLength, seconds: TOTAL, frames, server: msg };
+}
+window.renderDemo = render;
+window.drawFrame = drawFrame;
+window.TOTAL = TOTAL;
+document.getElementById('render').onclick = () => render().catch((e) => status('error: ' + e.message));
+drawFrame(2);
+</script>
+</body>
+</html>

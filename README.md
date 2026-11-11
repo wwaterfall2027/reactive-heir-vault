@@ -94,5 +94,5 @@ Two earlier versions failed on testnet, and each failure made the design better:
 - [x] Deploy to Ethereum Sepolia and Reactive Lasna.
 - [x] Cross-chain heartbeat verified (Sepolia `Heartbeat` to Lasna `react()`).
 - [x] Verify automatic release after inactivity (CRON, callback, release, unsubscribe).
-- [ ] Demo video under 3 minutes.
+- [x] Demo video under 3 minutes: [`video/heir-vault-demo.mp4`](video/heir-vault-demo.mp4) (1:50), rendered from [`video/demo.html`](video/demo.html).
 - [ ] Publish the public GitHub repository and submit on DoraHacks (with the user's approval).
