@@ -37,6 +37,8 @@ test/HeirVault.t.sol           vault tests (Foundry)
 test/HeirVaultReactive.t.sol   reactive logic tests with a mocked system contract
 test/TESTS.md                  what every test checks
 script/deploy.js               deployment plan used for the testnet run (ethers v6)
+app/index.html                 no-code web app (create, monitor and ping a vault)
+app/contracts.js               ABIs + bytecode exported from forge build
 ```
 
 ## Build and test
@@ -49,6 +51,28 @@ forge test
 ```
 
 The result is 23/23 tests passing, including fuzz tests. Details are in [test/TESTS.md](test/TESTS.md).
+
+## Web app: no code needed
+
+[`app/index.html`](app/index.html) is a single static page that works with any browser wallet (MetaMask, Rabby, Phantom), so you can use Heir Vault without writing code:
+
+- **Create a vault** in one flow. The app predicts the watcher's address on Lasna, deploys the vault on Sepolia with your deposit, tops up lREACT through Reactive's faucet if needed, deploys the watcher on Lasna, and sends the first heartbeat. Your wallet signs each step, and the page never sees your keys.
+- **My vault** shows a live countdown to release, the balance, heir and owner, and whether the watcher on Reactive has seen your latest heartbeat. It also shows how many release requests it has made and how much lREACT it has left. Anyone can look up a vault by address; the owner gets **I'm alive (ping)**, deposit, withdraw and change-heir buttons.
+- Deep link: `index.html?vault=0x…`.
+
+Run it locally with any static server from the `app/` folder.
+
+**Tested end to end through the app.** It used a private-key-backed EIP-1193 provider in place of a browser extension, a 2-minute period and Cron100:
+
+| Step | Chain | Transaction |
+|---|---|---|
+| Vault deployed from the app ([0x0955…2012](https://sepolia.etherscan.io/address/0x095586Aee1011B6537E79E4846Ff0B689ca62012)) | Sepolia | [0x7b02…f2de](https://sepolia.etherscan.io/tx/0x7b0274413039e52e99aebf90d936c60394248993f713b1df0109ec834f31f2de) |
+| lREACT top-up through the faucet | Sepolia | [0xddaa…0268](https://sepolia.etherscan.io/tx/0xddaa5850542933dc4d45863bb30c4dfcb82b0f21d248dcb8920e84fb1fa90268) |
+| Watcher deployed ([0x0955…2012](https://lasna.reactscan.net/address/0x095586Aee1011B6537E79E4846Ff0B689ca62012)) | Lasna | [0x72ab…d3c4](https://lasna.reactscan.net/tx/0x72aba740035876193f6e8590335420fbe8d46f71a30b8defca1314d6f784d3c4) |
+| First heartbeat | Sepolia | [0x254c…7d45](https://sepolia.etherscan.io/tx/0x254ca32b181423bdd80b1b54c6f7f5ce1ae750f0887d8c72a27d669c41cd7d45) |
+| CRON check: `ReleaseRequested` | Lasna | [0x83e6…37bd](https://lasna.reactscan.net/tx/0x83e669621c5bb635bb3b9770efbb23f676887d0578ba9f1ed14676e6e02a37bd) |
+| `release()`: the heir is paid | Sepolia | [0x09c0…6792](https://sepolia.etherscan.io/tx/0x09c0e4029dbaef0a635abd6813913a4b0c2c81ee46c43165b7153cdfbdd76792) |
+| Watcher unsubscribes: `Finished` | Lasna | [0xa6a3…afd9](https://lasna.reactscan.net/tx/0xa6a3f0b442b17eddb23ba46e4a1178bf3ef93e4d5ad2638a4d32adf958dcafd9) |
 
 ## Live deployment (testnet)
 
