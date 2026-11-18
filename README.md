@@ -108,15 +108,12 @@ Two earlier versions failed on testnet, and each failure made the design better:
    - re-requests the release every 5 minutes until the vault confirms `Released`;
    - unsubscribes once it is done, because CRON is billed on every tick.
 
-## To do before submitting
+## What's verified
 
-- [x] Compile against `reactive-lib-omni` (solc 0.8.34, in-browser).
-- [x] Pass all tests (23/23 with Foundry, including fuzz and reactive-logic tests).
-- [x] Confirm the CRON topics (Cron1 … Cron10000, from Reactive's CRON demo).
-- [x] Throwaway testnet deployer: `0xAC094DfE7FF9f40DB91533d3e050e60026388848` (key stays in the browser, never shared).
-- [x] Fund the deployer with Sepolia ETH (PoW faucet).
-- [x] Deploy to Ethereum Sepolia and Reactive Lasna.
-- [x] Cross-chain heartbeat verified (Sepolia `Heartbeat` to Lasna `react()`).
-- [x] Verify automatic release after inactivity (CRON, callback, release, unsubscribe).
-- [x] Demo video under 3 minutes: [`video/heir-vault-demo.mp4`](video/heir-vault-demo.mp4) (1:50), rendered from [`video/demo.html`](video/demo.html).
-- [ ] Publish the public GitHub repository and submit on DoraHacks (with the user's approval).
+- Compiles against `reactive-lib-omni` (solc 0.8.34, in-browser).
+- All tests pass (23/23 with Foundry, including fuzz and reactive-logic tests).
+- CRON topics confirmed (Cron1 … Cron10000, from Reactive's CRON demo).
+- Deployed to Ethereum Sepolia and Reactive Lasna from a throwaway testnet deployer, `0xAC094DfE7FF9f40DB91533d3e050e60026388848` (funded from a PoW faucet; its key never left the browser).
+- Cross-chain heartbeat verified (Sepolia `Heartbeat` to Lasna `react()`).
+- Automatic release after inactivity verified end to end (CRON, callback, release, unsubscribe).
+- Demo video under 3 minutes: [`video/heir-vault-demo.mp4`](video/heir-vault-demo.mp4) (1:50), rendered from [`video/demo.html`](video/demo.html).
